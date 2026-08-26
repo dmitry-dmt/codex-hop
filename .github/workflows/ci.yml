@@ -1,0 +1,82 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    # Windows only, on purpose: that is the platform this alpha is tested on and
+    # the only one the README claims. A green tick on a platform nobody verified
+    # would be a false signal.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package contents are allow-listed
+        shell: pwsh
+        run: |
+          # Inspect the real tarball, not npm's --json report: the report's shape
+          # has changed between npm versions, and a parse that silently yields
+          # nothing would turn this gate into a rubber stamp.
+          $tgz = (npm pack --silent | Select-Object -Last 1).Trim()
+          if (-not (Test-Path $tgz)) { Write-Error "npm pack produced no archive"; exit 1 }
+          $files = (tar -tf $tgz) -replace '^package/', '' | Where-Object { $_ -and -not $_.EndsWith('/') }
+          if ($files.Count -eq 0) { Write-Error "archive listing is empty - the check cannot pass vacuously"; exit 1 }
+          $allowed = '^(src/|examples/|scripts/|README\.md$|SECURITY\.md$|LICENSE$|package\.json$)'
+          $bad = $files | Where-Object { $_ -notmatch $allowed }
+          if ($bad) { Write-Error "not allow-listed: $($bad -join ', ')"; exit 1 }
+          Write-Host "package contents ok ($($files.Count) files)"
+          $files | ForEach-Object { Write-Host "  $_" }
+          Remove-Item $tgz -Force
+
+      - name: No leaked identifiers
+        shell: pwsh
+        env:
+          # Project-specific words to also reject, as a regex alternation.
+          # Kept in a repository variable rather than in this file: a denylist
+          # of names is itself a disclosure of those names.
+          EXTRA_DENYLIST: ${{ vars.EXTRA_DENYLIST }}
+        run: |
+          # Generic shapes that should never appear in a published source tree.
+          $patterns = @(
+            'C:\\Users\\',              # absolute Windows profile paths
+            '/home/[a-z]',              # absolute Linux home paths
+            'sk-[A-Za-z0-9_-]{20,}',    # API keys
+            'gh[pousr]_[A-Za-z0-9]{20,}',
+            'BEGIN [A-Z ]*PRIVATE KEY',
+            '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'  # e-mail addresses
+          )
+          if ($env:EXTRA_DENYLIST) { $patterns += $env:EXTRA_DENYLIST }
+          $pattern = ($patterns -join '|')
+          $hits = Get-ChildItem -Recurse -File -Include *.js,*.json,*.md,*.ps1,*.yml |
+            Where-Object { $_.FullName -notmatch '\\node_modules\\|\\\.git\\|package-lock\.json$' } |
+            Select-String -Pattern $pattern -AllMatches
+          if ($hits) {
+            # Report the location, never the matched text.
+            $hits | ForEach-Object { Write-Host ("{0}:{1}" -f $_.Path, $_.LineNumber) }
+            Write-Error 'leaked identifier found'
+            exit 1
+          }
+          Write-Host 'clean'
+
+      - name: No runtime artefacts committed
+        shell: pwsh
+        run: |
+          $bad = git ls-files | Where-Object { $_ -match '(^|/)(capture|logs|sessions)/|\.log$|state.*\.json$|ds_private_' }
+          if ($bad) { Write-Error "runtime artefact committed: $($bad -join ', ')"; exit 1 }
+          Write-Host 'clean'
+
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true

@@ -1,0 +1,25 @@
+{
+  "_comment": "Copy to the codex-hop data directory as config.json and edit. On Windows that is %LOCALAPPDATA%/codex-hop/config.json. Every section is optional: with no config at all the router relays traffic and supports /dsk and /gpt, with MCP disabled.",
+  "maxDsContextBytes": 4194304,
+  "_maxDsContextBytes": "Above this decoded request size the router refuses to forward the turn to DeepSeek and explains why in the chat instead. Nothing is truncated. Override once with '/dsk force'.",
+  "maxMcpIterations": 6,
+  "_maxMcpIterations": "Hard cap on router-executed tool steps inside a single user turn. Each step re-sends the whole context.",
+  "threadStateTtlDays": 30,
+  "requireConfirmation": true,
+  "_requireConfirmation": "Two-phase write: preview first, then '/send-ok' to perform it. This is the default and you can omit the key entirely. Only an explicit false turns it off, which makes a write run the moment the model asks for it.",
+  "mcpServers": {
+    "_comment": "Servers are matched by name against [mcp_servers.*] in the Codex config.toml; command, args, env and cwd come from there. Only the tools listed here are published, and only if the server reports annotations.readOnlyHint === true.",
+    "example-server": {
+      "tools": [
+        "search",
+        "read"
+      ]
+    }
+  },
+  "writeTools": {
+    "enabled": false,
+    "tools": []
+  },
+  "_writeTools": "Write-capable MCP tools, listed by exact name. Disabled by default. Each call is guarded by the confirmation handshake above.",
+  "writeToolsBlocked": []
+}

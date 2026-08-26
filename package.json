@@ -1,0 +1,42 @@
+{
+  "name": "codex-hop",
+  "version": "0.1.0",
+  "description": "Unofficial local proxy for the Codex client: switch a thread between OpenAI and DeepSeek with /dsk and /gpt, without restarting or starting a new conversation.",
+  "keywords": [
+    "codex",
+    "openai-codex",
+    "deepseek",
+    "model-router",
+    "mcp",
+    "proxy"
+  ],
+  "homepage": "https://github.com/dmitry-dmt/codex-hop#readme",
+  "bugs": {
+    "url": "https://github.com/dmitry-dmt/codex-hop/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmitry-dmt/codex-hop.git"
+  },
+  "license": "MIT",
+  "main": "src/router.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "start": "node src/router.js",
+    "test": "node --test test/*.test.js"
+  },
+  "files": [
+    "src/",
+    "examples/",
+    "scripts/",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  }
+}

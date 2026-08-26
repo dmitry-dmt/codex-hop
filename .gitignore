@@ -1,0 +1,19 @@
+# Runtime state and traffic — never committed, never packaged.
+# The router sits on the critical path of every Codex request; anything it
+# writes at runtime can contain conversation content.
+node_modules/
+*.log
+logs/
+capture/
+sessions/
+router.pid
+router.current
+*state*.json
+*intents*.json
+ds_private_*.json
+config.local.json
+.env
+*.bak-*
+
+# Local test corpus: real captured request bodies, never published.
+corpus/
