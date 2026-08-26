@@ -388,3 +388,40 @@ test('intermediate provider history is scoped to one DS turn', () => {
   assert.doesNotMatch(src, /privateHistory|loadPrivate|savePrivate|clearPrivate/,
     'conversation-derived history must not survive in process-global state');
 });
+
+// --------------------------------------------------- model reported by /mode
+// The client can change the model in its own UI between turns, without any
+// marker for the router to notice. A synthetic answer that names a compiled-in
+// default instead of the live one tells the user something untrue.
+test('synthetic answers name the model the client is actually on', async (t) => {
+  await t.test('the live request body wins over anything stored', () => {
+    const rec = { provider: 'openai', model: 'gpt-5.6-luna', last_openai_model: 'gpt-5.6-luna' };
+    assert.strictEqual(R.synthModel(rec, { model: 'gpt-5.6-sol' }), 'gpt-5.6-sol');
+  });
+
+  await t.test('the DeepSeek leg reports what the router substitutes', () => {
+    const rec = { provider: 'deepseek', model: 'deepseek-v4-flash' };
+    // The body still carries the client's own model: it is the one being replaced.
+    assert.strictEqual(R.synthModel(rec, { model: 'gpt-5.6-sol' }), 'deepseek-v4-flash');
+  });
+
+  await t.test('a body without a usable model falls back, newest first', () => {
+    const rec = { provider: 'openai', model: 'gpt-5.6-luna', last_openai_model: 'gpt-5.6-sol' };
+    assert.strictEqual(R.synthModel(rec, {}), 'gpt-5.6-sol');
+    assert.strictEqual(R.synthModel(rec, null), 'gpt-5.6-sol');
+    assert.strictEqual(R.synthModel({ provider: 'openai', model: 'gpt-5.6-sol' }, {}), 'gpt-5.6-sol');
+  });
+
+  await t.test('the DeepSeek model is never reported as an OpenAI one', () => {
+    const got = R.synthModel({ provider: 'openai' }, { model: 'deepseek-v4-flash' });
+    assert.ok(got.startsWith('gpt-'), 'expected an OpenAI model, got ' + got);
+  });
+
+  await t.test('no synthetic path carries its own copy of the model name', () => {
+    const fs = require('node:fs');
+    const src = fs.readFileSync(require('node:path').join(__dirname, '..', 'src', 'router.js'), 'utf8');
+    const literals = src.match(/'gpt-[^']*'/g) || [];
+    assert.deepStrictEqual(literals.length, 1,
+      'the default model name belongs in exactly one constant, found: ' + literals.join(', '));
+  });
+});

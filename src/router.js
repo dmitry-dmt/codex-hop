@@ -1155,8 +1155,22 @@ function sendSSEResponse(res, respObj) {
 }
 
 // ---------------------------------------------------------------- /mode synthesis
-function synthMode(req, res, threadId, rec, t0) {
-  const model = rec.provider === 'deepseek' ? (rec.model || DS_MODEL) : (rec.model || DEFAULT_OPENAI_MODEL);
+// The model a synthetic answer reports. On the OpenAI leg the request body is
+// the only current truth: the client sends the model it is about to use, and
+// the user can change it in the client's own UI at any time without typing a
+// marker, which leaves anything the router stored behind. On the DeepSeek leg
+// the client's model is the one being replaced, so the answer is what the
+// router substitutes for it.
+function synthModel(rec, body) {
+  if (rec && rec.provider === 'deepseek') return (rec && rec.model) || DS_MODEL;
+  const live = body && typeof body.model === 'string' && body.model && body.model !== DS_MODEL
+    ? body.model
+    : null;
+  return live || (rec && (rec.last_openai_model || rec.model)) || DEFAULT_OPENAI_MODEL;
+}
+
+function synthMode(req, res, threadId, rec, t0, body) {
+  const model = synthModel(rec, body);
   const text = 'mode: provider=' + rec.provider + ' model=' + model + ' effort=' + (rec.effort || 'medium') + ' thread=' + threadKey(threadId);
   const out = {
     id: 'resp_' + rnd(), object: 'response', created_at: Math.floor(Date.now() / 1000),
@@ -1170,10 +1184,10 @@ function synthMode(req, res, threadId, rec, t0) {
 }
 
 // generic zero-token synthesis (used by /send-ok and friends)
-function synthText(res, text, tag, threadId) {
+function synthText(res, text, tag, threadId, body) {
   const out = {
     id: 'resp_' + rnd(), object: 'response', created_at: Math.floor(Date.now() / 1000),
-    status: 'completed', model: 'gpt-5.6-luna',
+    status: 'completed', model: synthModel(threadId ? threadRec(threadId) : null, body),
     output: [{ id: 'msg_' + rnd(), type: 'message', status: 'completed', role: 'assistant',
       content: [{ type: 'output_text', text, annotations: [] }] }],
     usage: { total_tokens: 0, input_tokens: 0, output_tokens: 0 }
@@ -1209,7 +1223,7 @@ function dsErrorMessage(resp, code) {
 // the SAME arguments; accept the server's elicit() only if the preview matches
 // the one saved at phase 1 (byte-identical hash). Single-use, TTL 15 min.
 async function handleSendOk(req, res, threadId, t0) {
-  loadIntents(); // re-read from disk: intents are persisted and must survive restarts AND external edits
+  loadIntents(); // in-memory only; see the note at the declaration
   const it = intents[threadId];
   const started = Date.now();
   if (!it) {
@@ -1335,6 +1349,14 @@ function handleInference(req, res, t0, pathname) {
     }
 
 
+    // The model can be changed in the client's UI between turns, with no marker
+    // to notice it. Record it every turn so anything the router answers on its
+    // own names the model the user actually selected. Persisted with the next
+    // marker rather than here: this must not add a write to every turn.
+    if (typeof body.model === 'string' && body.model && body.model !== DS_MODEL) {
+      rec.last_openai_model = body.model;
+    }
+
     const marker = findMarker(body);
 
     if (marker) {
@@ -1371,7 +1393,7 @@ function handleInference(req, res, t0, pathname) {
         rec.updated_at = new Date().toISOString();
         saveState();
       } else if (marker.cmd === 'mode') {
-        synthMode(req, res, threadId, rec, t0);
+        synthMode(req, res, threadId, rec, t0, body);
         return;
       }
     }
@@ -1836,6 +1858,7 @@ function shutdown() {
 module.exports = {
   MARKER_RE,
   findMarker,
+  synthModel,
   stripAllMarkers,
   normalizeToDS,
   shimFreeformHistoryItem,
