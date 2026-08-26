@@ -240,9 +240,7 @@ test('write confirmation is required unless explicitly disabled', () => {
     'only an explicit false turns it off');
 });
 
-test('user-facing text is in the project language', () => {
-  // The prototype speaks Russian; the published package must not. An English
-  // speaker who forgets the key should be able to read the error that says so.
+test('all project-facing text is English-only', () => {
   const CYRILLIC = /[\u0400-\u04FF]/;
   const samples = [
     R.dsErrorMessage({ status: 0, error: 'DEEPSEEK_API_KEY missing' }, 502),
@@ -254,8 +252,25 @@ test('user-facing text is in the project language', () => {
   for (const s of samples) {
     assert.ok(!CYRILLIC.test(s), 'non-English text reached the user: ' + s.slice(0, 60));
   }
-  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'router.js'), 'utf8');
-  assert.ok(!CYRILLIC.test(src), 'router.js still contains non-English text');
+
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const textExtensions = new Set(['.js', '.json', '.md', '.ps1', '.yml', '.yaml', '.svg']);
+  const offenders = [];
+  function scan(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === '.git' || entry.name === 'node_modules') continue;
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) { scan(file); continue; }
+      if (!textExtensions.has(path.extname(entry.name).toLowerCase())) continue;
+      const text = fs.readFileSync(file, 'utf8');
+      if (CYRILLIC.test(text)) offenders.push(path.relative(root, file));
+    }
+  }
+  scan(root);
+  assert.deepStrictEqual(offenders, [],
+    'project-facing text must remain English-only: ' + offenders.join(', '));
 });
 
 test('conversation content is not logged unless explicitly asked for', () => {
@@ -358,4 +373,18 @@ test('nothing conversation-derived is written to disk', () => {
   // And that file must not be keyed by a real thread id.
   assert.match(src, /const key = threadKey\(threadId\)/,
     'thread state must be keyed by the hash, not the raw id');
+});
+
+test('intermediate provider history is scoped to one DS turn', () => {
+  const src = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '..', 'src', 'router.js'), 'utf8');
+  const start = src.indexOf('async function handleDSTurn');
+  const end = src.indexOf('// ---------------------------------------------------------------- DS compaction', start);
+  assert.ok(start >= 0 && end > start, 'handleDSTurn must be present');
+
+  const turn = src.slice(start, end);
+  assert.match(turn, /const priv = \{ items: \[\] \}/,
+    'intermediate history must be local to handleDSTurn');
+  assert.doesNotMatch(src, /privateHistory|loadPrivate|savePrivate|clearPrivate/,
+    'conversation-derived history must not survive in process-global state');
 });

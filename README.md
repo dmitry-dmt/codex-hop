@@ -1,10 +1,22 @@
 # codex-hop
 
+[![CI](https://github.com/dmitry-dmt/codex-hop/actions/workflows/ci.yml/badge.svg)](https://github.com/dmitry-dmt/codex-hop/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-36e4da.svg)](LICENSE)
+[![Windows](https://img.shields.io/badge/platform-Windows-7977ff.svg)](#limitations)
+
+![Switch between DeepSeek and OpenAI without leaving the Codex thread](docs/assets/codex-hop-demo.gif)
+
+DeepSeek creates and runs a file with `/dsk`; OpenAI updates the same file with
+`/gpt`. The provider changes, while the thread and working context stay intact.
+
 **Unofficial. Not affiliated with, endorsed by, or supported by OpenAI.**
 
 Switch a Codex thread between OpenAI and DeepSeek without leaving it. Type `/dsk` and
 the rest of that thread is answered by DeepSeek — same conversation, same files, same
 tools. `/gpt` switches back. Useful when your usage limit runs out mid-task.
+
+OpenCodex and codex-router are more mature and support more providers; `codex-hop`
+focuses on switching providers inside the same live Codex thread.
 
 ```
 you   ▸ /dsk finish the migration script
@@ -71,8 +83,9 @@ powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 
 Then set your key, start the router, and **fully restart Codex**:
 
-```bash
-DEEPSEEK_API_KEY=sk-... npm start
+```powershell
+$env:DEEPSEEK_API_KEY = "sk-..."
+npm start
 ```
 
 No service, no autostart, nothing running in the background. To undo:
@@ -165,3 +178,5 @@ directory as `config.json` to enable it.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).

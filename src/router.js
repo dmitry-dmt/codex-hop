@@ -65,7 +65,7 @@ const SESSIONS_DIR = path.join(CODEX_HOME, 'sessions');
 // code does not keep is worse than one never made.
 const DEBUG_CONTENT = process.env.CODEX_HOP_DEBUG_CONTENT === '1';
 const CONFIG_PATH = path.join(CODEX_HOME, 'config.toml');
-let ROUTER_CONFIG = { mcpServers: {}, writeToolsBlocked: [], privateHistoryTtlDays: 7, maxMcpIterations: 6 };
+let ROUTER_CONFIG = { mcpServers: {}, writeToolsBlocked: [], maxMcpIterations: 6 };
 const CONFIG_FILE = process.env.CODEX_HOP_CONFIG || path.join(DATA_DIR, 'config.json');
 // A BOM is what Windows editors and PowerShell's Set-Content produce by
 // default, and JSON.parse rejects it. Without this the config is silently
@@ -126,21 +126,6 @@ let intents = {};
 function loadIntents() { /* memory only */ }
 function saveIntents() { /* memory only */ }
 
-// ---------------------------------------------------------------- private DS history
-// Intermediate steps of a multi-tool turn: the provider's own reasoning and the
-// results of tools the router ran. The provider rejects a request whose history
-// has lost its reasoning, so this has to be carried across the steps of a turn -
-// but only across those steps. It is conversation content and never reaches disk.
-const privateHistory = new Map();
-function loadPrivate(threadId) {
-  return privateHistory.get(threadId) || { fingerprint: null, items: [] };
-}
-function savePrivate(threadId, priv) {
-  privateHistory.set(threadId, priv);
-}
-function clearPrivate(threadId) {
-  privateHistory.delete(threadId);
-}
 // Thread state is append-only otherwise: every thread ever seen stays forever.
 // Drop records untouched for ttlDays — a stale record only holds a provider
 // choice, and a thread that old will be re-created on its next turn anyway.
@@ -152,14 +137,6 @@ function gcState(ttlDays) {
     if (Number.isFinite(t) && t < cutoff) { delete state.threads[id]; removed++; }
   }
   if (removed) { saveState(); log('STATE-GC removed=' + removed + ' left=' + Object.keys(state.threads).length); }
-}
-
-function fingerprintOf(input) {
-  const arr = Array.isArray(input) ? input : [];
-  const h = crypto.createHash('sha1');
-  h.update(String(arr.length));
-  for (const it of arr.slice(-3)) h.update(JSON.stringify(it) || '');
-  return h.digest('hex').slice(0, 16);
 }
 
 // ---------------------------------------------------------------- utils
@@ -1444,6 +1421,9 @@ function handleInference(req, res, t0, pathname) {
 // ---------------------------------------------------------------- DS turn with local MCP execution
 async function handleDSTurn(req, res, threadId, body, rec, t0) {
   const maxIter = (ROUTER_CONFIG && ROUTER_CONFIG.maxMcpIterations) || 6;
+  // Intermediate reasoning and MCP results exist only for this invocation.
+  // Keeping them local guarantees every return and thrown error releases them.
+  const priv = { items: [] };
 
   // Oversized context guard. Codex re-sends the whole thread every turn, so a
   // long session reaches sizes where DeepSeek answers slowly and noticeably
@@ -1467,15 +1447,8 @@ async function handleDSTurn(req, res, threadId, body, rec, t0) {
     log('DS-CONTEXT-FORCED thread=' + threadKey(threadId) + ' bytes=' + bodyBytes);
   }
 
-  const priv = loadPrivate(threadId);
-  const fp = fingerprintOf(body.input || []);
   // which tools this thread declared as freeform, for the response path
   const clientCustom = customToolNames(body.input);
-  if (priv.fingerprint && priv.fingerprint !== fp) {
-    log('PRIVATE-HISTORY-RESET thread=' + threadKey(threadId) + ' (incoming history diverged from private history)');
-    priv.items = [];
-    priv.fingerprint = null;
-  }
   let iter = 0;
   let first = true;
   while (true) {
@@ -1525,7 +1498,6 @@ async function handleDSTurn(req, res, threadId, body, rec, t0) {
         log('DS-STEP-DROPPED ' + (stepItems.length - keptItems.length) + ' client-side call(s) alongside MCP calls');
       }
       priv.items = priv.items.concat(keptItems);
-      priv.fingerprint = fp;
       for (const c of mcpCalls) {
         let r;
         let previewText = null;
@@ -1570,16 +1542,11 @@ async function handleDSTurn(req, res, threadId, body, rec, t0) {
           output: JSON.stringify({ result: r.text, isError: r.isError })
         });
       }
-      savePrivate(threadId, priv);
       iter++;
       continue;
     }
     // No MCP calls in this reply: it (and only it) goes to Codex, which runs
     // any exec/wait call in it. Private history of this turn is done.
-    if (priv.items.length) {
-      clearPrivate(threadId);
-      log('PRIVATE-HISTORY-CLEARED thread=' + threadKey(threadId));
-    }
     streamEvents(res, retargetCustomTools(resp.events, clientCustom));
     return;
   }

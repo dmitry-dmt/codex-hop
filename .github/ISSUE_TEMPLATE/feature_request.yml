@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest a focused improvement to codex-hop
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What limitation or workflow problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful change and how a user would interact with it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. What workarounds or other approaches did you try?
+
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Project boundaries
+      options:
+        - label: This keeps shell execution inside the Codex client sandbox.
+          required: true
+        - label: This does not require storing conversation content on disk.
+          required: true
+

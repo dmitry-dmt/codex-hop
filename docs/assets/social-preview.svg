@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">codex-hop</title>
+  <desc id="desc">Switch providers. Keep the thread.</desc>
+
+  <defs>
+    <linearGradient id="background" x1="120" y1="60" x2="1160" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#11192B"/>
+      <stop offset="0.55" stop-color="#090F1D"/>
+      <stop offset="1" stop-color="#070B14"/>
+    </linearGradient>
+    <linearGradient id="route" x1="742" y1="390" x2="1120" y2="242" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#36E4DA"/>
+      <stop offset="0.52" stop-color="#769BFF"/>
+      <stop offset="1" stop-color="#A970FF"/>
+    </linearGradient>
+    <radialGradient id="cyanGlow" cx="0" cy="0" r="1" gradientTransform="translate(768 405) rotate(-16) scale(340 250)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#28D8D0" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#28D8D0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetGlow" cx="0" cy="0" r="1" gradientTransform="translate(1080 215) rotate(140) scale(310 230)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9362FF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#9362FF" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#B7C4E2" stroke-opacity="0.055"/>
+    </pattern>
+    <filter id="routeGlow" x="-30%" y="-60%" width="160%" height="220%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="panelShadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#02050A" flood-opacity="0.58"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#background)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <rect width="1280" height="640" fill="url(#cyanGlow)"/>
+  <rect width="1280" height="640" fill="url(#violetGlow)"/>
+
+  <g transform="translate(92 148)">
+    <g aria-label="codex-hop" fill="#F6F8FF" font-family="Consolas, 'SFMono-Regular', 'Liberation Mono', monospace" font-size="82" font-weight="700" letter-spacing="-4">
+      <text x="0" y="86">codex-hop</text>
+    </g>
+    <rect x="4" y="117" width="58" height="5" rx="2.5" fill="#36E4DA"/>
+    <rect x="70" y="117" width="20" height="5" rx="2.5" fill="#FF806A"/>
+    <text x="4" y="180" fill="#AAB7D1" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="500" letter-spacing="0.2">Switch providers. Keep the thread.</text>
+    <text x="4" y="238" fill="#71809D" font-family="Consolas, 'SFMono-Regular', monospace" font-size="21">/dsk  ↔  /gpt</text>
+  </g>
+
+  <g filter="url(#panelShadow)">
+    <g transform="translate(720 290) rotate(-4 168 104)">
+      <rect width="336" height="208" rx="22" fill="#0D1727" stroke="#2B4961" stroke-width="2"/>
+      <path d="M0 54H336" stroke="#24364C" stroke-width="2"/>
+      <circle cx="28" cy="27" r="6" fill="#36E4DA"/>
+      <circle cx="50" cy="27" r="6" fill="#32465D"/>
+      <circle cx="72" cy="27" r="6" fill="#32465D"/>
+      <path d="M32 91L55 110L32 129" fill="none" stroke="#43E6DC" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="72" y="123" width="91" height="7" rx="3.5" fill="#8AA6BC"/>
+      <rect x="32" y="158" width="198" height="7" rx="3.5" fill="#31506A"/>
+    </g>
+
+    <g transform="translate(917 142) rotate(4 146 92)">
+      <rect width="292" height="184" rx="22" fill="#151227" stroke="#493669" stroke-width="2"/>
+      <path d="M0 50H292" stroke="#342847" stroke-width="2"/>
+      <circle cx="27" cy="25" r="6" fill="#A970FF"/>
+      <circle cx="49" cy="25" r="6" fill="#47375F"/>
+      <circle cx="71" cy="25" r="6" fill="#47375F"/>
+      <path d="M31 84L52 101L31 118" fill="none" stroke="#B283FF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="68" y="113" width="82" height="7" rx="3.5" fill="#A190BD"/>
+      <rect x="31" y="146" width="170" height="7" rx="3.5" fill="#594673"/>
+    </g>
+  </g>
+
+  <path d="M773 454C826 454 842 443 842 409V378C842 343 859 330 901 330H958C999 330 1012 316 1012 282V249C1012 226 1026 214 1053 214" fill="none" stroke="#0A0F1B" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M773 454C826 454 842 443 842 409V378C842 343 859 330 901 330H958C999 330 1012 316 1012 282V249C1012 226 1026 214 1053 214" fill="none" stroke="url(#route)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#routeGlow)"/>
+  <circle cx="773" cy="454" r="13" fill="#36E4DA" stroke="#D7FFFC" stroke-width="4"/>
+  <circle cx="901" cy="330" r="9" fill="#FF806A" stroke="#FFD8D0" stroke-width="3"/>
+  <circle cx="1053" cy="214" r="13" fill="#A970FF" stroke="#E8DAFF" stroke-width="4"/>
+
+  <path d="M1170 74h22M1181 63v22" stroke="#8E6CFF" stroke-width="3" stroke-linecap="round" opacity="0.72"/>
+  <circle cx="1138" cy="88" r="4" fill="#36E4DA" opacity="0.9"/>
+  <circle cx="1216" cy="540" r="3" fill="#FF806A" opacity="0.8"/>
+</svg>
