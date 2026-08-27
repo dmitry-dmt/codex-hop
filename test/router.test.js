@@ -425,3 +425,33 @@ test('synthetic answers name the model the client is actually on', async (t) => 
       'the default model name belongs in exactly one constant, found: ' + literals.join(', '));
   });
 });
+
+// ------------------------------------------------ the limit message the README shows
+// The README quotes this message verbatim. Quoting it is only useful if the quote
+// stays true, so the two are compared rather than trusted.
+test('the limit message matches the one the README quotes', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
+
+  const blocks = [];
+  let cur = [];
+  for (const line of readme.split('\n')) {
+    if (line.startsWith('>')) cur.push(line.replace(/^>\s?/, ''));
+    else { if (cur.length) blocks.push(cur.join(' ')); cur = []; }
+  }
+  if (cur.length) blocks.push(cur.join(' '));
+
+  const norm = (s) => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
+  const documented = blocks.map(norm).find((b) => b.includes('usage limit reached'));
+  assert.ok(documented, 'the README no longer quotes the limit message');
+
+  // 5760 s is the value that renders as the "96 min" the README shows.
+  assert.strictEqual(norm(R.usageLimitMessage({ resets_in_seconds: 5760 })), documented);
+});
+
+test('no upstream field name leaks into a message the user reads', () => {
+  const msg = R.usageLimitMessage({ resets_in_seconds: 5786 });
+  assert.doesNotMatch(msg, /resets_in_seconds|error\.type|plan_type/,
+    'a message shown in the chat must not carry raw fields from the upstream error');
+});

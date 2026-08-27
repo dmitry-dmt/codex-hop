@@ -116,15 +116,11 @@ function threadRec(threadId) {
 loadState();
 
 // ---------------------------------------------------------------- deferred send intents
-// One intent per thread, single-use, TTL 15 min, persisted next to the state file
-// so an automatic router restart mid-dialog cannot lose it.
+// One intent per thread, single-use, TTL 15 min. A pending write holds the tool
+// arguments, which for a mail or comment tool is the message body, so it lives
+// in memory only: a handshake this short-lived is not worth writing to disk.
 const INTENT_TTL_MS = 15 * 60 * 1000;
-// A pending write holds the tool arguments, which for a mail or comment tool is
-// the message body. It lives in memory only: the handshake is single-use with a
-// short TTL, and surviving a restart is not worth writing that to disk.
 let intents = {};
-function loadIntents() { /* memory only */ }
-function saveIntents() { /* memory only */ }
 
 // Thread state is append-only otherwise: every thread ever seen stays forever.
 // Drop records untouched for ttlDays — a stale record only holds a provider
@@ -796,7 +792,7 @@ function usageLimitError(buf) {
 function usageLimitMessage(l) {
   const secs = l.resets_in_seconds;
   const when = secs > 0
-    ? 'it resets in about ' + Math.ceil(secs / 60) + ' min (resets_in_seconds=' + secs + ')'
+    ? 'it resets in about ' + Math.ceil(secs / 60) + ' min'
     : 'the upstream did not say when it resets';
   return 'OpenAI usage limit reached, ' + when + '. Type /dsk to keep working in this thread on DeepSeek.';
 }
@@ -1169,7 +1165,7 @@ function synthModel(rec, body) {
   return live || (rec && (rec.last_openai_model || rec.model)) || DEFAULT_OPENAI_MODEL;
 }
 
-function synthMode(req, res, threadId, rec, t0, body) {
+function synthMode(res, threadId, rec, body) {
   const model = synthModel(rec, body);
   const text = 'mode: provider=' + rec.provider + ' model=' + model + ' effort=' + (rec.effort || 'medium') + ' thread=' + threadKey(threadId);
   const out = {
@@ -1223,7 +1219,6 @@ function dsErrorMessage(resp, code) {
 // the SAME arguments; accept the server's elicit() only if the preview matches
 // the one saved at phase 1 (byte-identical hash). Single-use, TTL 15 min.
 async function handleSendOk(req, res, threadId, t0) {
-  loadIntents(); // in-memory only; see the note at the declaration
   const it = intents[threadId];
   const started = Date.now();
   if (!it) {
@@ -1232,12 +1227,12 @@ async function handleSendOk(req, res, threadId, t0) {
     return;
   }
   if (Date.now() - it.ts > INTENT_TTL_MS) {
-    delete intents[threadId]; saveIntents();
+    delete intents[threadId];
     log('SEND-OK id=' + it.id + ' tool=' + it.tool + ' phase=2 decision=expired dur=' + (Date.now() - started) + 'ms');
     synthText(res, 'The pending email action expired (older than 15 minutes). Nothing was sent — ask the model to compose it again.', '/send-ok expired', threadId);
     return;
   }
-  delete intents[threadId]; saveIntents(); // single-use: consumed before the call
+  delete intents[threadId]; // single-use: consumed before the call
   let mismatch = false;
   let r;
   try {
@@ -1393,7 +1388,7 @@ function handleInference(req, res, t0, pathname) {
         rec.updated_at = new Date().toISOString();
         saveState();
       } else if (marker.cmd === 'mode') {
-        synthMode(req, res, threadId, rec, t0, body);
+        synthMode(res, threadId, rec, body);
         return;
       }
     }
@@ -1545,7 +1540,6 @@ async function handleDSTurn(req, res, threadId, body, rec, t0) {
                   previewHash: mcp.hashPreview(preview),
                   ts: Date.now()
                 };
-                saveIntents();
                 log('INTENT-SAVED id=' + intents[threadId].id + ' tool=' + c.name + ' thread=' + threadKey(threadId));
               }
             });
@@ -1859,6 +1853,7 @@ module.exports = {
   MARKER_RE,
   findMarker,
   synthModel,
+  usageLimitMessage,
   stripAllMarkers,
   normalizeToDS,
   shimFreeformHistoryItem,
