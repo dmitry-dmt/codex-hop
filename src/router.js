@@ -99,7 +99,10 @@ function loadState() {
     state = JSON.parse(raw);
     if (!state || typeof state !== 'object' || !state.threads) state = { threads: {} };
   } catch (e) {
-    if (e.code !== 'ENOENT') log('STATE-LOAD-ERROR ' + e.message);
+    // Naming the path matters: an empty first start and a start against the
+    // wrong directory look identical from the outside.
+    if (e.code === 'ENOENT') log('STATE-NONE no file at ' + STATE_FILE + ' - starting empty');
+    else log('STATE-LOAD-ERROR ' + e.message);
     state = { threads: {} };
   }
 }

@@ -18,6 +18,13 @@ $data = if ($env:CODEX_HOP_DATA) { $env:CODEX_HOP_DATA } else { Join-Path $env:L
 $logs = Join-Path $data 'logs'
 $port = if ($env:CODEX_HOP_PORT) { [int]$env:CODEX_HOP_PORT } else { 8788 }
 
+# Pass the resolved paths down rather than letting the child resolve them again:
+# a scheduled task does not always carry the same environment an interactive
+# shell does, and a router that quietly picks a different data directory looks
+# like a working router with no history and no MCP servers.
+$env:CODEX_HOP_DATA = $data
+$env:CODEX_HOP_PORT = "$port"
+
 New-Item -ItemType Directory -Force $data | Out-Null
 New-Item -ItemType Directory -Force $logs | Out-Null
 
