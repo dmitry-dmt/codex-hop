@@ -100,13 +100,16 @@ backend that is not there. If you would rather not think about it:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\autostart.ps1
-Start-ScheduledTask -TaskName codex-hop
 ```
 
-That registers a logon task, under your own account and without administrator rights,
-which starts the router and restarts it if it exits. Take it back out with
-`scripts\autostart.ps1 -Remove`. Set the key with `setx DEEPSEEK_API_KEY "sk-..."`
-rather than `$env:` — a logon task cannot see a variable exported in one shell session.
+That puts a shortcut in your Startup folder, under your own account and without
+administrator rights, which starts the router and restarts it if it exits. Take it
+back out with `scripts\autostart.ps1 -Remove`. Set the key with
+`setx DEEPSEEK_API_KEY "sk-..."` rather than `$env:` — a launcher started at logon
+cannot see a variable exported in one shell session.
+
+It takes effect at your next logon; the script prints the one line that starts it
+immediately if you would rather not wait.
 
 Type `/mode` in any thread to see what is ready:
 
