@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/dmitry-dmt/codex-hop/actions/workflows/ci.yml/badge.svg)](https://github.com/dmitry-dmt/codex-hop/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36e4da.svg)](LICENSE)
-[![Windows](https://img.shields.io/badge/platform-Windows-7977ff.svg)](#limitations)
+[![Tested on Windows](https://img.shields.io/badge/tested%20on-Windows-7977ff.svg)](#limitations)
 
 ![Switch between DeepSeek and OpenAI without leaving the Codex thread](docs/assets/codex-hop-demo.gif)
 
@@ -13,7 +13,7 @@ DeepSeek creates and runs a file with `/dsk`; OpenAI updates the same file with
 
 Switch a Codex thread between OpenAI and DeepSeek without leaving it. Type `/dsk` and
 the rest of that thread is answered by DeepSeek — same conversation, same files, same
-tools. `/gpt` switches back. Useful when your usage limit runs out mid-task.
+tools. `/gpt` switches back. Useful when your 5-hour usage limit hits 0% mid-task.
 
 OpenCodex and codex-router are more mature and support more providers; `codex-hop`
 focuses on switching providers inside the same live Codex thread.
@@ -165,13 +165,15 @@ directory as `config.json` to enable it.
 - **Save tokens.** It saves money and quota. The context is the same size.
 - **Guarantee it keeps working.** It depends on internal client behaviour, and a
   client update can break it.
-- **macOS or Linux.** Untested there.
 
 ## Limitations
 
 - Compaction runs on OpenAI. If your OpenAI limit is exhausted *and* the thread is
   large enough to need compacting, that thread waits for the reset.
-- Windows only. Tested against Codex Desktop client 0.149.0.
+- Tested on Windows, against Codex Desktop client 0.149.0. The router has no
+  platform-specific code and its data directory already falls back to
+  `~/.local/share/codex-hop`, so it may well run elsewhere — but macOS and Linux are
+  untested, and `setup.ps1` is PowerShell, so point Codex at the router by hand there.
 
 ---
 
