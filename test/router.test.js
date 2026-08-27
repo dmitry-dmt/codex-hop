@@ -455,3 +455,42 @@ test('no upstream field name leaks into a message the user reads', () => {
   assert.doesNotMatch(msg, /resets_in_seconds|error\.type|plan_type/,
     'a message shown in the chat must not carry raw fields from the upstream error');
 });
+
+// ------------------------------------------------------- /mode as a readiness check
+// Typing /dsk into a router that cannot reach DeepSeek should not be how you find out
+// the key is missing. /mode costs nothing to run and says so up front.
+test('/mode reports readiness, not just the selection', async (t) => {
+  await t.test('a configured router says what is ready', () => {
+    const line = R.modeText({ provider: 'openai', effort: 'high' }, 'thread-1',
+      { model: 'gpt-5.6-sol' }, { key: true, mcpTools: 27 });
+    assert.match(line, /provider=openai/);
+    assert.match(line, /model=gpt-5\.6-sol/);
+    assert.match(line, /deepseek-key=set/);
+    assert.match(line, /mcp-tools=27/);
+  });
+
+  await t.test('a missing key cannot be skimmed past', () => {
+    const line = R.modeText({ provider: 'openai' }, 'thread-1', {}, { key: false, mcpTools: 0 });
+    assert.match(line, /deepseek-key=MISSING/,
+      'an absent key must not read like a present one');
+  });
+
+  await t.test('no raw thread id reaches the line', () => {
+    const line = R.modeText({ provider: 'openai' }, 'my-secret-thread-id', {},
+      { key: true, mcpTools: 3 });
+    assert.doesNotMatch(line, /my-secret-thread-id/);
+  });
+});
+
+test('the autostart scripts are readable by PowerShell 5.1', () => {
+  // A .ps1 without a BOM is read as ANSI, so a non-ASCII byte becomes mojibake -
+  // and one stray apostrophe out of it ends a string literal early.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  for (const name of ['service.ps1', 'autostart.ps1', 'setup.ps1', 'uninstall.ps1']) {
+    const buf = fs.readFileSync(path.join(__dirname, '..', 'scripts', name));
+    const bad = [...buf].findIndex((b) => b > 126);
+    assert.strictEqual(bad, -1,
+      name + ' has a non-ASCII byte at offset ' + bad);
+  }
+});

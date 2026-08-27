@@ -249,4 +249,10 @@ async function callTool(alias, args, policy) {
   });
 }
 
-module.exports = { init, closeAll, getFunctionTools, isMcpToolName, isWriteTool, callTool, hashPreview, parseTomlConfig };
+// Enough to tell "MCP is up" from "MCP is configured but published nothing"
+// without listing the tools themselves.
+function status() {
+  return { tools: state.tools.length, writeTools: !!state.writeToolsEnabled };
+}
+
+module.exports = { init, closeAll, getFunctionTools, isMcpToolName, isWriteTool, callTool, hashPreview, parseTomlConfig, status };

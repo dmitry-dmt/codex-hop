@@ -1165,9 +1165,24 @@ function synthModel(rec, body) {
   return live || (rec && (rec.last_openai_model || rec.model)) || DEFAULT_OPENAI_MODEL;
 }
 
+// What /mode prints. A provider and a model say what was selected; the key and
+// the tool count say whether a /dsk turn can actually go anywhere. Both belong
+// in the one command that costs nothing to run.
+function modeText(rec, threadId, body, health) {
+  return 'mode: provider=' + rec.provider +
+    ' model=' + synthModel(rec, body) +
+    ' effort=' + (rec.effort || 'medium') +
+    ' thread=' + threadKey(threadId) +
+    ' deepseek-key=' + (health.key ? 'set' : 'MISSING') +
+    ' mcp-tools=' + health.mcpTools;
+}
+
 function synthMode(res, threadId, rec, body) {
   const model = synthModel(rec, body);
-  const text = 'mode: provider=' + rec.provider + ' model=' + model + ' effort=' + (rec.effort || 'medium') + ' thread=' + threadKey(threadId);
+  const text = modeText(rec, threadId, body, {
+    key: !!process.env.DEEPSEEK_API_KEY,
+    mcpTools: mcp.status().tools
+  });
   const out = {
     id: 'resp_' + rnd(), object: 'response', created_at: Math.floor(Date.now() / 1000),
     status: 'completed', model,
@@ -1197,7 +1212,8 @@ function synthText(res, text, tag, threadId, body) {
 function dsErrorMessage(resp, code) {
   const raw = (resp && (resp.errorBody || resp.error)) || '';
   if (/DEEPSEEK_API_KEY missing/.test(String(resp && resp.error))) {
-    return 'No DeepSeek key. Set the DEEPSEEK_API_KEY environment variable and restart the router.\n\n' +
+    return 'No DeepSeek key. Set it for your account, then restart the router:\n' +
+      '  setx DEEPSEEK_API_KEY "sk-..."\n\n' +
       'To go back to GPT, type /gpt.';
   }
   const tail = '\n\nTo go back to GPT, type /gpt.';
@@ -1853,6 +1869,7 @@ module.exports = {
   MARKER_RE,
   findMarker,
   synthModel,
+  modeText,
   usageLimitMessage,
   stripAllMarkers,
   normalizeToDS,

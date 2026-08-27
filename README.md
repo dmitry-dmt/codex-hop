@@ -88,9 +88,32 @@ $env:DEEPSEEK_API_KEY = "sk-..."
 npm start
 ```
 
-No service, no autostart, nothing running in the background. To undo:
+Nothing is installed and nothing runs in the background: `npm start` runs in the window
+you started it in, and closing that window stops it. To undo the config change:
 `powershell -ExecutionPolicy Bypass -File scripts\uninstall.ps1`, which restores your
 previous setting only if it still points at a local router.
+
+### Keeping it running
+
+A router that dies with its terminal takes Codex with it — the client cannot reach a
+backend that is not there. If you would rather not think about it:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\autostart.ps1
+Start-ScheduledTask -TaskName codex-hop
+```
+
+That registers a logon task, under your own account and without administrator rights,
+which starts the router and restarts it if it exits. Take it back out with
+`scripts\autostart.ps1 -Remove`. Set the key with `setx DEEPSEEK_API_KEY "sk-..."`
+rather than `$env:` — a logon task cannot see a variable exported in one shell session.
+
+Type `/mode` in any thread to see what is ready:
+
+```
+mode: provider=openai model=gpt-5.6-sol effort=high thread=fcd899120e69
+      deepseek-key=set mcp-tools=27
+```
 
 ---
 
@@ -104,7 +127,7 @@ Type these at the start of a message in any Codex thread.
 | `/dsk high` / `/dsk max` | Switch and set reasoning effort |
 | `/dsk force <task>` | Proceed even if the thread is over the size guard |
 | `/gpt <task>` | Switch back to OpenAI |
-| `/mode` | Show the current provider — answered locally, no upstream call |
+| `/mode` | Provider, model, and whether the key and MCP are ready — answered locally |
 | `/send-ok` | Confirm a pending write-capable MCP call |
 
 `/dsk low` is not an effort level — `low` is read as the task text.

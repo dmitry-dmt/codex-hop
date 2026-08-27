@@ -1,6 +1,6 @@
 {
   "name": "codex-hop",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Unofficial local proxy for the Codex client: switch a thread between OpenAI and DeepSeek with /dsk and /gpt, without restarting or starting a new conversation.",
   "keywords": [
     "codex",
